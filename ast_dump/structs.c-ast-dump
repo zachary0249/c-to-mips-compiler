@@ -1,0 +1,5 @@
+Program(
+StructTypeDecl(StructType( myStructure ), VarDecl(INT, myNum), VarDecl(CHAR, myLetter), VarDecl(ArrayType(CHAR, 30), myString)), StructTypeDecl(StructType( Car ), VarDecl(ArrayType(CHAR, 50), brand), VarDecl(ArrayType(CHAR, 50), model), VarDecl(ArrayType(ArrayType(CHAR, 4), 3), arr), VarDecl(INT, year)), StructTypeDecl(StructType( Garage ), VarDecl(StructType( Car ), c), VarDecl(VOID, v)), FunDecl(VOID, fun, 
+	Block()), FunDecl(VOID, main, 
+	Block(VarDecl(StructType( myStructure ), ms), VarDecl(StructType( Car ), c0), VarDecl(StructType( Car ), c1), VarDecl(ArrayType(StructType( Car ), 2), cars), ExprStmt(Assign(FieldAccessExpr(VarExpr(ms), myNum), IntLiteral(10))), ExprStmt(Assign(FieldAccessExpr(VarExpr(c0), year), IntLiteral(2000))), ExprStmt(Assign(FieldAccessExpr(VarExpr(c1), year), IntLiteral(1934))), ExprStmt(Assign(ArrayAccessExpr(VarExpr(cars), IntLiteral(0)), VarExpr(c0))), ExprStmt(Assign(ArrayAccessExpr(VarExpr(cars), IntLiteral(1)), VarExpr(c1))), ExprStmt(Assign(FieldAccessExpr(ArrayAccessExpr(VarExpr(cars), IntLiteral(0)), year), IntLiteral(2000)))))
+)

@@ -1,0 +1,4 @@
+Program(
+FunDecl(VOID, main, 
+	Block(VarDecl(INT, x), VarDecl(INT, y), ExprStmt(Assign(VarExpr(x), IntLiteral(5))), ExprStmt(Assign(VarExpr(y), IntLiteral(10))), If(BinOp(VarExpr(x), EQ, IntLiteral(10)), Return()), Return()))
+)

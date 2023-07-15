@@ -1,0 +1,178 @@
+# #  comment
+# () grouping
+# [] optional
+# *  zero or more
+# +  one or more
+# |  alternative
+# kc = Kleene Closure (*)
+# pc = Positive Closure (+)
+
+
+program    ::= (includes) contents_kc EOF
+contents_kc ::= (classdecl | structdecl | vardecl | fundecl) contents_kc | ε
+
+includes   ::= (include) (includes) | ε
+include    ::= "#include" STRING_LITERAL
+
+classdecl  ::= classtype ["extends" IDENT] "{" (vardecl)* (fundecl)* "}"
+
+structdecl ::= structtype "{" vardecl_pc "}" ";"    # structure declaration
+vardecl_pc::= vardecl vardecl_pc | vardecl
+
+vardecl    ::= type IDENT arraydecl_kc ";" # normal declaration, (e.g. int a;), or multi-dimensional array declaration, (e.g. int a[2][5];)
+arraydecl_kc ::= ("[" INT_LITERAL "]") arraydecl_kc | ε
+
+fundecl    ::= type IDENT "(" params_opt ")" block    # function declaration
+
+type       ::= ("int" | "char" | "void" | classtype | structtype) ("*")_kc
+("*")_kc   ::= ("*") ("*")_kc | ε
+classtype  ::= "class" IDENT
+structtype ::= "struct" IDENT
+
+params_opt ::= type IDENT andmore | ε
+andmore    ::= ("," type IDENT) andmore | ε
+
+stmt       ::= block
+             | "while" "(" exp ")" stmt              # while loop
+             | "if" "(" exp ")" stmt else_opt   # if then else
+             | "return" exp_opt ";"                    # return
+             | exp ";"                               # expression statement, e.g. a function call
+
+else_opt   ::= "else" stmt | ε
+exp_opt    ::= exp | ε
+
+block      ::= "{" vardecl_kc stmt_kc "}"
+vardecl_kc::= vardecl vardecl_kc | ε
+stmt_kc   ::= stmt stmt_kc | ε
+
+
+exp        ::= "(" exp ")" exp'                      # β1 exp'
+             | (IDENT | INT_LITERAL) exp'            # β2 exp'
+             | ("-" | "+") exp exp'                  # β3 exp'
+             | CHAR_LITERAL exp'                     # β4 exp'
+             | STRING_LITERAL exp'                   # β5 exp'
+             | "*" exp exp'                          # β6 exp'
+             | "&" exp exp'                          # β7 exp'
+             | IDENT "(" fncparams_opt ")" exp'      # β8 exp'
+             | SIZEOF "(" type ")" exp'              # β9 exp'
+             | "(" type ")" exp exp'                 # β10 exp'
+
+
+exp'       ::= "=" exp exp'
+             | op exp exp'
+             | "[" exp "]" exp'
+             | "." exp exp'
+             | ε
+
+# function call parameters
+fncparams_opt ::= exp andMore | ε
+andMore ::= ("," exp) andMore | ε
+
+
+op         ::= ">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&"
+
+
+funcall      ::= IDENT "(" [ exp ("," exp)* ] ")" # function call
+arrayaccess  ::= exp "[" exp "]"                  # array access
+fieldaccess  ::= exp "." IDENT                    # structure field member access
+valueat      ::= "*" exp                          # Value at operator (pointer indirection)
+addressof    ::= "&" exp                          # Address-of operator
+sizeof       ::= "sizeof" "(" type ")"            # size of type
+typecast     ::= "(" type ")" exp                 # type casting
+
+
+
+// restructuring to encode operator precedence in expressions (original)
+exp        ::= "(" exp ")"
+             | exp "=" exp                           # assignment
+             | (IDENT | INT_LITERAL)
+             | ("-" | "+") exp
+             | CHAR_LITERAL
+             | STRING_LITERAL
+             | exp op exp  # binary operators
+             | arrayaccess
+             | fieldaccess
+             | valueat
+             | addressof
+             | funcall
+             | sizeof
+             | typecast
+
+exp          ::= AssignTerm ( "=" AssignTerm )*
+AssignTerm   ::= LGORTerm ( "||" LGORTerm)*
+LGORTerm     ::= LGANDTerm ( "&&" LGANDTerm)*
+LGANDTerm    ::= RelTermP2 ( ("==" | "!=") RelTermP2)*
+RelTermP2    ::= RelTermP1 ( ("<" | "<=" | ">" | ">=") RelTermP1)*
+RelTermP1    ::= AddSubTerm ( ("+" | "-") AddSubTerm)*
+AddSubTerm   ::= MulDivRemTerm ( ("*" | "/" | "%") MulDivRemTerm)*
+MulDivRemTerm::= "&" (AddressOfTerm)*
+AddressOfTerm::= "*" (ValueAtTerm)*
+ValueAtTerm  ::= "(" type ")" (TypeCastTerm)*
+TypeCastTerm ::= "-" (UnMinusTerm)*
+UnMinusTerm  ::= "+" (UnPlusTerm)*
+UnPlusTerm   ::= StructAccTerm ("." StructAccTerm)*
+StructAccTerm::= ArrAccTerm ("[" ArrAccTerm "]")*
+ArrAccTerm   ::= FnCallTerm "(" [ FnCallTerm ("," FnCallTerm)* ] ")"
+FnCallTerm   ::= IDENT | INT_LITERAL | CHAR_LITERAL | STRING_LITERAL | "(" exp ")"
+
+
+// removing EBNF syntax from above
+exp          ::= AssignTerm AssignTerms
+AssignTerms  ::= "=" AssignTerm AssignTerms | ϵ
+AssignTerm   ::= LGORTerm LGORTerms
+LGORTerms    ::= "||" LGORTerm LGORTerms | ϵ
+LGORTerm     ::= LGANDTerm LGANDTerms
+LGANDTerms   ::= "&&" LGANDTerm LGANDTerms | ϵ
+LGANDTerm    ::= RelTermP2 RelTermsP2
+RelTermsP2   ::= ("==" | "!=") RelTermP2 RelTermsP2 | ϵ
+RelTermP2    ::= RelTermP1 RelTermsP1
+RelTermsP1   ::= ("<" | "<=" | ">" | ">=") RelTermP1 RelTermsP1 | ϵ
+RelTermP1    ::= AddSubTerm AddSubTerms
+AddSubTerms  ::= ("+" | "-") AddSubTerm AddSubTerms | ϵ
+AddSubTerm   ::= MulDivRemTerm MulDivRemTerms
+MulDivRemTerms::= ("*" | "/" | "%") MulDivRemTerm MulDivRemTerms | ϵ
+MulDivRemTerm::= "&" AddressOfTerms
+AddressOfTerms::= AddressOfTerm AddressOfTerms | ϵ
+AddressOfTerm::= "*" ValueAtTerms
+ValueAtTerms ::= ValueAtTerm ValueAtTerms | ϵ
+ValueAtTerm  ::= "(" type ")" TypeCastTerms
+TypeCastTerms::= TypeCastTerm TypeCastTerms | ϵ
+TypeCastTerm ::= "-" UnMinusTerms
+UnMinusTerms ::= UnMinusTerm UnMinusTerms | ϵ
+UnMinusTerm  ::= "+" UnPlusTerms
+UnPlusTerms  ::= UnPlusTerm UnPlusTerm | ϵ
+UnPlusTerm   ::= StructAccTerm StructAccTerms
+StructAccTerms::= "." StructAccTerm StructAccTerms | ϵ
+StructAccTerm::= ArrAccTerm ArrAccTerms
+ArrAccTerms  ::= "[" ArrAccTerm "]" ArrAccTerms | ϵ
+ArrAccTerm   ::= FnCallTerm FnCallTerms
+FnCallTerms  ::= "(" FnCallParamsOpt ")"
+FnCallParamOpt::= FnCallTerm FnCallParams | ϵ
+FnCallParams ::= "," FnCallTerm FnCallParams | ϵ
+FnCallTerm   ::= IDENT | INT_LITERAL | CHAR_LITERAL | STRING_LITERAL | "(" exp ")"
+
+// further simplification
+// E# where # refers to the level of precedence
+exp          ::= E9 ("=" exp | ϵ)
+E9           ::= E8 ("||" E8)*
+E8           ::= E7 ("&&" E7)*
+E7           ::= E6 (("==" | "!=") E6)*
+E6           ::= E5 (("<" | "<=" | ">" | ">=") E5)*
+E5           ::= E4 (("+" | "-") E4)*
+E4           ::= E3 (("*" | "/" | "%") E3)*
+E3           ::= ("+" | "-" | "(" type ")" | "*" | "&")* E1
+E1           ::= E0 ( ("[" exp "]" | "." IDENT | "." IDENT "(" (exp ("," exp)* | ϵ) ")") )*
+# atomics
+E0           ::= "new" classtype"()" | IDENT "(" (exp ("," exp)* | ϵ) ")" | IDENT | INT_LITERAL
+                 | CHAR_LITERAL | STRING_LITERAL | "(" exp ")" | "sizeof" "(" type ")"
+
+
+funcall      ::= IDENT "(" [ exp ("," exp)* ] ")" # function call
+arrayaccess  ::= exp "[" exp "]"                  # array access
+fieldaccess  ::= exp "." IDENT                    # structure field member access
+valueat      ::= "*" exp                          # Value at operator (pointer indirection)
+addressof    ::= "&" exp                          # Address-of operator
+sizeof       ::= "sizeof" "(" type ")"            # size of type
+typecast     ::= "(" type ")" exp                 # type casting
+
+
